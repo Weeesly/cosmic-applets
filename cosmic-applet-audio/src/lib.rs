@@ -13,12 +13,12 @@ use cosmic::{
         menu_button, menu_control_padding, padded_control,
         token::subscription::{activation_token_subscription, TokenRequest, TokenUpdate},
     },
-    cctk::sctk::reexports::calloop,
+    cctk::sctk::reexports::{calloop, protocols::xdg::shell::client::xdg_positioner::Anchor},
     cosmic_config::CosmicConfigEntry,
     iced::{
-        self, widget,
-        widget::{column, row, slider, text},
-        window, Alignment, Length, Limits, Subscription,
+        self,
+        widget::{self, column, row, slider, text},
+        window, Alignment, Length, Limits, Rectangle, Subscription,
     },
     iced_runtime::core::alignment::Horizontal,
     iced_style::application,
@@ -136,6 +136,7 @@ pub enum Message {
     Token(TokenUpdate),
     OpenSettings,
     PulseSub(sub_pulse::Event),
+    Popup2,
 }
 
 impl Audio {
@@ -618,6 +619,30 @@ impl cosmic::Application for Audio {
                     }
                 }
             },
+            Message::Popup2 => {
+                if let Some(p) = self.popup.as_ref() {
+                    let mut popup_settings = self.core.applet.get_popup_settings(
+                        p.clone(),
+                        window::Id::unique(),
+                        None,
+                        None,
+                        None,
+                    );
+                    popup_settings.positioner.anchor = Anchor::Left;
+                    popup_settings.positioner.anchor_rect = Rectangle::<i32> {
+                        x: 50,
+                        y: 50,
+                        width: 200,
+                        height: 200,
+                    };
+                    popup_settings.positioner.size_limits = Limits::NONE
+                        .min_height(1.0)
+                        .min_width(1.0)
+                        .max_width(300.0)
+                        .max_height(400.0);
+                    return get_popup(popup_settings);
+                }
+            }
         };
 
         Command::none()
@@ -662,7 +687,13 @@ impl cosmic::Application for Audio {
                 .clamp(0.0, 100.0);
             Message::SetOutputVolume(new_volume)
         });
-        if let Some(playback_buttons) = self.playback_buttons() {
+        let playback_buttons = (!self.core.applet.configure.as_ref().is_some_and(|c| {
+            // if we have a configure for width and height, we're in a overflow popup
+            c.new_size.0.is_some() && c.new_size.1.is_some()
+        }))
+        .then(|| self.playback_buttons());
+
+        if let Some(Some(playback_buttons)) = playback_buttons {
             match self.core.applet.anchor {
                 PanelAnchor::Left | PanelAnchor::Right => {
                     Column::with_children(vec![playback_buttons, btn.into()])
@@ -863,7 +894,7 @@ impl cosmic::Application for Audio {
             )
             .padding([0, 24]),
             padded_control(divider::horizontal::default()),
-            menu_button(text(fl!("sound-settings")).size(14)).on_press(Message::OpenSettings)
+            menu_button(text(fl!("sound-settings")).size(14)).on_press(Message::Popup2)
         ]
         .align_items(Alignment::Start)
         .padding([8, 0]);

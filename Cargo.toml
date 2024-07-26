@@ -2,6 +2,7 @@
 default-members = ["cosmic-applets", "cosmic-panel-button"]
 members = [
     "cosmic-app-list",
+    "cosmic-app-list/cosmic-app-list-config",
     "cosmic-applets",
     "cosmic-applet-audio",
     "cosmic-applet-battery",
@@ -31,6 +32,8 @@ cosmic-time = { git = "https://github.com/pop-os/cosmic-time", default-features 
     "libcosmic",
     "once_cell",
 ] }
+
+
 futures = "0.3"
 futures-util = "0.3"
 i18n-embed = { version = "0.14.1", features = [
